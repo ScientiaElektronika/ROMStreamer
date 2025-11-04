@@ -1,0 +1,7 @@
+simulation
+output_files
+incremental_db
+*.mem
+*qpf
+*qsf
+db/
