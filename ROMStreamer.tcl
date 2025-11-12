@@ -14,7 +14,7 @@
 
 # Quartus II: Generate Tcl File for Project
 # File: ROMStreamer.tcl
-# Generated on: Mon Nov  3 20:31:59 2025
+# Generated on: Wed Nov 12 00:24:59 2025
 
 # Load Quartus II Tcl Project package
 package require ::quartus::project
@@ -60,15 +60,15 @@ if {$make_assignments} {
 	set_location_assignment PIN_144 -to i_rst_n
 	set_location_assignment PIN_17 -to i_clk
 	set_location_assignment PIN_143 -to o_DAC_Y[0]
-	set_location_assignment PIN_63 -to o_DAC_X[8]
-	set_location_assignment PIN_59 -to o_DAC_X[7]
-	set_location_assignment PIN_57 -to o_DAC_X[6]
-	set_location_assignment PIN_53 -to o_DAC_X[5]
-	set_location_assignment PIN_51 -to o_DAC_X[4]
-	set_location_assignment PIN_47 -to o_DAC_X[3]
-	set_location_assignment PIN_44 -to o_DAC_X[2]
-	set_location_assignment PIN_42 -to o_DAC_X[1]
-	set_location_assignment PIN_40 -to o_DAC_X[0]
+	set_location_assignment PIN_47 -to o_DAC_X[8]
+	set_location_assignment PIN_51 -to o_DAC_X[7]
+	set_location_assignment PIN_53 -to o_DAC_X[6]
+	set_location_assignment PIN_57 -to o_DAC_X[5]
+	set_location_assignment PIN_59 -to o_DAC_X[4]
+	set_location_assignment PIN_63 -to o_DAC_X[3]
+	set_location_assignment PIN_65 -to o_DAC_X[2]
+	set_location_assignment PIN_69 -to o_DAC_X[1]
+	set_location_assignment PIN_71 -to o_DAC_X[0]
 	set_location_assignment PIN_119 -to o_DAC_Y[8]
 	set_location_assignment PIN_121 -to o_DAC_Y[7]
 	set_location_assignment PIN_125 -to o_DAC_Y[6]
