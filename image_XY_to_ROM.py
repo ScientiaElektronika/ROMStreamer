@@ -5,6 +5,7 @@ from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import math
 import mif
 # =========================
 # Config
@@ -36,6 +37,106 @@ def write_mem_hex(path: str, values: list[int], hex_width: int) -> None:
 def luma_to_monochrome(gray: np.ndarray, thr: int) -> np.ndarray:
     """get boolean mask array from array"""
     return (gray <= thr)
+
+
+
+def sort_normalize_optimize(mono: np.ndarray, bits: int, flip_y: bool = True, margin: int = 32):
+    """
+    Returns ordered lists X, Y normalized to DAC
+    """
+    def normalize_val(v, src_min, src_max, dst_min, dst_max):
+        if src_max == src_min:
+            # div by zero except
+            return (dst_min + dst_max) // 2
+        return round(dst_min + (v - src_min) * (dst_max - dst_min) / (src_max - src_min))
+
+    def remove_duplicates(xs, ys):
+        if not xs:
+            return xs, ys
+        nx, ny = [xs[0]], [ys[0]]
+        for i in range(1, len(xs)):
+            if xs[i] != nx[-1] or ys[i] != ny[-1]:
+                nx.append(xs[i]); ny.append(ys[i])
+        return nx, ny
+
+    def interpolation(x0, y0, x1, y1, max_steps=8):
+        """Return intermediate rounded points between (x0,y0) and (x1,y1)"""
+        dx = x1 - x0
+        dy = y1 - y0
+        dist = math.hypot(dx, dy)
+        steps = min(max_steps, max(1, int(dist // 8)))
+        mid_x, mid_y = [], []
+        for s in range(1, steps + 1):
+            t = s / (steps + 1)
+            mid_x.append(round(x0 + dx * t))
+            mid_y.append(round(y0 + dy * t))
+        return mid_x, mid_y
+
+    h, w = mono.shape
+    dac_max = (1 << bits) - 1
+    dst_min = margin
+    dst_max = dac_max - margin
+    if dst_min >= dst_max:
+        dst_min = 0
+        dst_max = dac_max
+    # list of paths = list of (xpix, ypix) with x in [0,w-1], y in [0,h-1]
+    ordered_paths = []  
+    # find connected components 
+    visited = np.zeros_like(mono, dtype=bool)
+    comps = []
+    for r in range(h):
+        for c in range(w):
+            if mono[r, c] and not visited[r, c]:
+                stack = [(r, c)]
+                visited[r, c] = True
+                comp = []
+                while stack:
+                    yr, xc = stack.pop()
+                    comp.append((xc, yr))
+                    for dy, dx in ((1,0),(-1,0),(0,1),(0,-1)):
+                        ny, nx = yr + dy, xc + dx
+                        if 0 <= ny < h and 0 <= nx < w and mono[ny, nx] and not visited[ny, nx]:
+                            visited[ny, nx] = True
+                            stack.append((ny, nx))
+                comps.append(comp)
+
+    # nearest neighbor
+    for comp in comps:
+        pts = comp[:]
+        cur = min(pts, key=lambda p: (p[0], p[1]))
+        path = [cur]
+        pts_set = set(pts)
+        pts_set.remove(cur)
+        while pts_set:
+            # get min of squared Euclidean distances
+            nxt = min(pts_set, key=lambda p: (p[0]-cur[0])**2 + (p[1]-cur[1])**2)
+            path.append(nxt)
+            pts_set.remove(nxt)
+            cur = nxt
+        ordered_paths.append(path)
+
+    # normalize
+    X_total, Y_total = [], []
+    for path in ordered_paths:
+        if not path:
+            continue
+        xs = []
+        ys = []
+        for xpix, ypix in path:
+            if flip_y:
+                yrow = (h - 1 - ypix)
+            else:
+                yrow = ypix
+            x_dac = normalize_val(xpix, 0, max(1, w - 1), dst_min, dst_max)
+            y_dac = normalize_val(yrow, 0, max(1, h - 1), dst_min, dst_max)
+            xs.append(int(x_dac)); ys.append(int(y_dac))
+        xs, ys = remove_duplicates(xs, ys)
+        if X_total and xs:
+            rx, ry = interpolation(X_total[-1], Y_total[-1], xs[0], ys[0])
+            X_total.extend(rx); Y_total.extend(ry)
+        X_total.extend(xs); Y_total.extend(ys)
+
+    return X_total, Y_total
 
 def monochrome_display(mono: np.ndarray, w, h) -> None:
     """display monochrome"""
@@ -103,7 +204,8 @@ def main():
 
 
     #X, Y = monochrome_to_xy_samples(mono, False)
-    X, Y = monochrome_to_xy_samples_normalized(mono, DAC_BITS, FLIP_Y)
+    #X, Y = monochrome_to_xy_samples_normalized(mono, DAC_BITS, FLIP_Y)
+    X, Y = sort_normalize_optimize(mono, DAC_BITS, FLIP_Y, MARGIN)
     xy_samples_display(X, Y)
     X_ds, Y_ds = downsample_xy(X, Y, 8)
     xy_samples_display(X_ds, Y_ds)

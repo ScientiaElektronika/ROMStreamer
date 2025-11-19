@@ -6,7 +6,7 @@ module ROMStreamer(
 );
 
     localparam  DATA_WIDTH = 9;
-    localparam  DEPTH = 2387;
+    localparam  DEPTH = 1231;
     localparam  XFILE = "imagex.mem";
     localparam  YFILE = "imagey.mem";
 
