@@ -4,9 +4,9 @@
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 import math
-import mif
+import sys
+
 # =========================
 # Config
 # =========================
@@ -14,6 +14,12 @@ DAC_BITS   = 9       # DAC resolution (bits)
 THRESHOLD  = 128      # black-pixel threshold (<= is black)
 MARGIN     = 32       # keep waveform away from rails
 FLIP_Y     = True     # flip Y so image is upright in XY mode
+
+IMAGES_TO_CHOOSE = {
+    "1" : "image_boa_constrictor.png",
+    "2" : "image_cat.png",
+    "3" : "image_E.png"
+}
 
 def luma_load(in_png: str) -> tuple[np.ndarray, int, int]:
     """load file as png image but converted to 8-bit grayscale, return (array, width, height)"""
@@ -193,8 +199,37 @@ def downsample_xy(X: list[int], Y: list[int], decim: int):
     Y_ds = Y[::decim]
     return X_ds, Y_ds
 
+def get_key_immediate():
+    try:
+        import msvcrt
+        return msvcrt.getch().decode()
+    except ImportError:
+        import tty, termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
 def main():
-    in_png = "image.png"
+
+    fname = ""
+    while True:
+        print("choose image to process(123):")
+        for key in IMAGES_TO_CHOOSE:
+            print(f"{key} - {IMAGES_TO_CHOOSE[key]}")
+        key = get_key_immediate()
+        if key in IMAGES_TO_CHOOSE:
+            fname = IMAGES_TO_CHOOSE[key]
+            print(f"seleceted {fname}")
+            break
+        else:
+            print("invalid key, try again")
+
+    in_png = fname
     prefix = "image"
 
     gray, w, h = luma_load(in_png)
